@@ -198,7 +198,7 @@ export const BASELINE_COHORT = 75000;
 export const RANK_ANCHORS: { score: number; rank: number }[] = [
   { score: 112.75, rank: 1 },
   { score: 102, rank: 102 },
-  { score: 96, rank: 625 },
+  { score: 94, rank: 664 },
   { score: 86, rank: 2106 },
   { score: 75, rank: 7076 },
   { score: 64.5, rank: 14300 },
