@@ -11,7 +11,6 @@ import {
   AlertTriangle,
   CheckCircle2,
   AlertCircle,
-  Circle,
   Flag,
   Pencil,
   CheckCheck,
@@ -21,6 +20,7 @@ import {
   buildTimePlan,
   CLAT_EXAM_MINUTES,
   OMR_BUFFER_MINUTES,
+  type SectionDifficulty,
   type TimePlan,
 } from "@/lib/time-allocation";
 
@@ -32,20 +32,17 @@ function getOmrAdvice(buf: number): { level: AdviceLevel; text: string } {
   if (buf > 22)
     return {
       level: "warn",
-      text:
-        "You're reserving way too much time for OMR — that eats deep into your solving budget. 15-20 min is plenty for 120 bubbles.",
+      text: "You're reserving way too much time for OMR — that eats deep into your solving budget. 15-20 min is plenty for 120 bubbles.",
     };
   if (buf <= 10)
     return {
       level: "danger",
-      text:
-        "Cutting it very tight. Keep patience and take time to fill the OMR sheet carefully — rushed bubbling causes irreversible marking errors.",
+      text: "Cutting it very tight. Keep patience and take time to fill the OMR sheet carefully — rushed bubbling causes irreversible marking errors.",
     };
   if (buf <= 13)
     return {
       level: "warn",
-      text:
-        "A bit tight. Aim for at least 14 min so you're not rushing the final bubble-in.",
+      text: "A bit tight. Aim for at least 14 min so you're not rushing the final bubble-in.",
     };
   return {
     level: "ok",
@@ -55,9 +52,53 @@ function getOmrAdvice(buf: number): { level: AdviceLevel; text: string } {
 
 const adviceStyles: Record<AdviceLevel, { icon: React.ElementType; cls: string }> = {
   danger: { icon: AlertCircle, cls: "text-swot-weakness bg-swot-weakness/10 border-swot-weakness/25" },
-  warn: { icon: AlertTriangle, cls: "text-swot-threat bg-swot-threat/10 border-swot-threat/25" },
-  ok: { icon: CheckCircle2, cls: "text-swot-strength bg-swot-strength/10 border-swot-strength/25" },
+  warn:   { icon: AlertTriangle, cls: "text-swot-threat bg-swot-threat/10 border-swot-threat/25" },
+  ok:     { icon: CheckCircle2, cls: "text-swot-strength bg-swot-strength/10 border-swot-strength/25" },
 };
+
+/* ─── Difficulty toggle ───────────────────────────────────────────── */
+
+const DIFFICULTIES: SectionDifficulty[] = ["Easy", "Medium", "Hard"];
+
+const diffStyle: Record<SectionDifficulty, { active: string; label: string }> = {
+  Easy:   { active: "bg-swot-strength/15 text-swot-strength border-swot-strength/40 font-semibold", label: "E" },
+  Medium: { active: "bg-muted text-muted-foreground border-border font-semibold",                   label: "M" },
+  Hard:   { active: "bg-swot-weakness/15 text-swot-weakness border-swot-weakness/40 font-semibold", label: "H" },
+};
+
+function DifficultyToggle({
+  sectionKey,
+  value,
+  onChange,
+}: {
+  sectionKey: string;
+  value: SectionDifficulty;
+  onChange: (key: string, d: SectionDifficulty) => void;
+}) {
+  return (
+    <div className="flex overflow-hidden rounded border border-border" title="Section paper difficulty">
+      {DIFFICULTIES.map((d) => {
+        const isActive = value === d;
+        return (
+          <button
+            key={d}
+            onClick={() => onChange(sectionKey, d)}
+            className={`px-1.5 py-0.5 text-[10px] leading-none transition-colors ${
+              isActive
+                ? diffStyle[d].active
+                : "text-muted-foreground/50 hover:bg-muted/60 hover:text-muted-foreground"
+            }`}
+            title={d}
+            aria-label={`Mark ${d}`}
+            aria-pressed={isActive}
+          >
+            {diffStyle[d].label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 /* ─── Timeline helpers ────────────────────────────────────────────── */
 
@@ -87,7 +128,6 @@ function buildCheckpoints(plan: TimePlan): Checkpoint[] {
       sublabel: `${Math.round(sec.minutes)} min window · ${sec.secondsPerQ}s per question`,
     });
 
-    // Mini-bubble every ~25 questions within this section
     if (sec.total > 0 && sec.minutes > 0) {
       const minPerQ = sec.minutes / sec.total;
       const interval = 25 * minPerQ;
@@ -127,43 +167,24 @@ function fmtTime(minFromStart: number): string {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-const checkpointMeta: Record<
-  CheckpointType,
-  { Icon: React.ElementType; dotCls: string; rowCls: string }
-> = {
-  "exam-start": {
-    Icon: Flag,
-    dotCls: "bg-brand border-brand",
-    rowCls: "font-semibold text-foreground",
-  },
-  "section-start": {
-    Icon: Clock,
-    dotCls: "bg-brand/70 border-brand/70",
-    rowCls: "font-medium text-foreground",
-  },
-  "mini-bubble": {
-    Icon: Pencil,
-    dotCls: "bg-swot-opportunity/60 border-swot-opportunity/60",
-    rowCls: "text-muted-foreground",
-  },
-  "omr-start": {
-    Icon: CheckCheck,
-    dotCls: "bg-swot-strength border-swot-strength",
-    rowCls: "font-semibold text-foreground",
-  },
-  "exam-end": {
-    Icon: Flag,
-    dotCls: "bg-swot-weakness border-swot-weakness",
-    rowCls: "font-semibold text-foreground",
-  },
+const checkpointMeta: Record<CheckpointType, { Icon: React.ElementType; dotCls: string; rowCls: string }> = {
+  "exam-start":   { Icon: Flag,       dotCls: "bg-brand border-brand",                             rowCls: "font-semibold text-foreground" },
+  "section-start":{ Icon: Clock,      dotCls: "bg-brand/70 border-brand/70",                       rowCls: "font-medium text-foreground" },
+  "mini-bubble":  { Icon: Pencil,     dotCls: "bg-swot-opportunity/60 border-swot-opportunity/60", rowCls: "text-muted-foreground" },
+  "omr-start":    { Icon: CheckCheck, dotCls: "bg-swot-strength border-swot-strength",             rowCls: "font-semibold text-foreground" },
+  "exam-end":     { Icon: Flag,       dotCls: "bg-swot-weakness border-swot-weakness",             rowCls: "font-semibold text-foreground" },
 };
 
 /* ─── Component ───────────────────────────────────────────────────── */
 
 export function TimeManagementInsights({ sections }: { sections: SectionAnalysis[] }) {
   const [omrBuffer, setOmrBuffer] = useState(OMR_BUFFER_MINUTES);
+  const [sectionDifficulty, setSectionDifficulty] = useState<Record<string, SectionDifficulty>>({});
 
-  const plan = buildTimePlan(sections, CLAT_EXAM_MINUTES, { omrBuffer });
+  const setDiff = (key: string, d: SectionDifficulty) =>
+    setSectionDifficulty((prev) => ({ ...prev, [key]: d }));
+
+  const plan = buildTimePlan(sections, CLAT_EXAM_MINUTES, { omrBuffer, sectionDifficulty });
   const max = Math.max(...plan.sections.map((p) => p.minutes), 1);
   const advice = getOmrAdvice(omrBuffer);
   const { icon: AdviceIcon, cls: adviceCls } = adviceStyles[advice.level];
@@ -183,28 +204,40 @@ export function TimeManagementInsights({ sections }: { sections: SectionAnalysis
       <CardContent className="space-y-5">
         {/* ── Section allocation bars ── */}
         <div className="space-y-3">
+          {/* Legend */}
+          <p className="text-[11px] text-muted-foreground">
+            Tap <span className="font-semibold">E · M · H</span> to tell the planner how hard each section felt — allocations update instantly.
+          </p>
+
           {plan.sections.map((p) => {
-            const Icon =
-              p.deltaMinutes > 1.5 ? ArrowUp : p.deltaMinutes < -1.5 ? ArrowDown : Minus;
+            const DeltaIcon = p.deltaMinutes > 1.5 ? ArrowUp : p.deltaMinutes < -1.5 ? ArrowDown : Minus;
             const tone =
               p.deltaMinutes > 1.5
                 ? "text-swot-weakness"
                 : p.deltaMinutes < -1.5
                   ? "text-swot-strength"
                   : "text-muted-foreground";
+            const currentDiff = sectionDifficulty[p.key] ?? "Medium";
             return (
               <div key={p.key} className="space-y-1.5">
-                <div className="flex items-baseline justify-between gap-2 text-sm">
-                  <span className="font-medium">{p.name}</span>
-                  <span className="flex items-center gap-2 text-xs text-muted-foreground">
+                <div className="flex items-center justify-between gap-2 text-sm">
+                  {/* Name + difficulty toggle */}
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="font-medium truncate">{p.name}</span>
+                    <DifficultyToggle
+                      sectionKey={p.key}
+                      value={currentDiff}
+                      onChange={setDiff}
+                    />
+                  </div>
+                  {/* Stats */}
+                  <span className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
                     <span className={`flex items-center gap-0.5 ${tone}`}>
-                      <Icon className="h-3 w-3" />
+                      <DeltaIcon className="h-3 w-3" />
                       {p.deltaMinutes > 0 ? "+" : ""}
                       {p.deltaMinutes.toFixed(0)}m vs even
                     </span>
-                    <span className="font-semibold text-foreground">
-                      {p.minutes.toFixed(0)} min
-                    </span>
+                    <span className="font-semibold text-foreground">{p.minutes.toFixed(0)} min</span>
                     <span>· {p.secondsPerQ}s/Q</span>
                   </span>
                 </div>
@@ -266,29 +299,24 @@ export function TimeManagementInsights({ sections }: { sections: SectionAnalysis
           </div>
         )}
 
-        {/* ── Minute-by-minute checkpoint timeline ── */}
+        {/* ── Checkpoint timeline ── */}
         <div className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Checkpoint timeline
           </p>
           <div className="relative pl-7">
-            {/* Vertical connector line */}
             <div className="absolute left-[10px] top-2 bottom-2 w-px bg-border" />
-
             <div className="space-y-0">
               {checkpoints.map((cp, i) => {
                 const { Icon, dotCls, rowCls } = checkpointMeta[cp.type];
                 const isMini = cp.type === "mini-bubble";
                 return (
                   <div key={i} className={`relative flex items-start gap-2.5 ${isMini ? "py-1" : "py-2"}`}>
-                    {/* Dot */}
                     <div
                       className={`absolute -left-7 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 bg-background ${dotCls} ${isMini ? "scale-75" : ""}`}
                     >
                       <Icon className={`${isMini ? "h-2 w-2" : "h-2.5 w-2.5"} text-white`} />
                     </div>
-
-                    {/* Content */}
                     <div className="min-w-0 flex-1">
                       <div className="flex items-baseline justify-between gap-2">
                         <span className={`text-sm leading-snug ${rowCls} ${isMini ? "text-xs" : ""}`}>

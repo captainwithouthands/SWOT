@@ -6,6 +6,16 @@ export const OMR_BUFFER_MINUTES = 18;
 /** Hard cap for the GK/Current Affairs section — recall-based, no extra time helps. */
 export const GK_MAX_MINUTES = 12;
 
+/** How hard the paper felt for a given section — overrides the accuracy-only model. */
+export type SectionDifficulty = "Easy" | "Medium" | "Hard";
+
+/** How much each difficulty level scales the time-weight for a section. */
+const DIFFICULTY_MULTIPLIER: Record<SectionDifficulty, number> = {
+  Easy: 0.82,   // faster to solve — need less time per question
+  Medium: 1.00, // no change from accuracy-based baseline
+  Hard: 1.22,   // slower to solve — need more time per question
+};
+
 export interface SectionTimePlan {
   key: string;
   name: string;
@@ -35,7 +45,8 @@ export interface TimePlan {
 }
 
 /**
- * Builds a time-allocation plan based on attempt + accuracy patterns.
+ * Builds a time-allocation plan based on attempt + accuracy patterns,
+ * optionally adjusted by per-section paper difficulty.
  *
  * Real-exam constraints applied:
  *   - OMR_BUFFER_MINUTES (~18 min) is reserved for bubbling the answer sheet.
@@ -43,31 +54,39 @@ export interface TimePlan {
  *     section, extra time doesn't unlock more correct answers.
  *
  * Heuristic (per remaining section):
- *   weight = total_questions * difficultyFactor
+ *   weight = total_questions * difficultyFactor * difficultyMultiplier
  *   difficultyFactor = clamp(1.35 - accuracy/100, 0.7, 1.4)
+ *   difficultyMultiplier = 0.82 (Easy) | 1.00 (Medium) | 1.22 (Hard)
  * Remaining minutes (solvingBudget - GK allocation) are normalised across
  * the rest by weight.
  */
 export function buildTimePlan(
   sections: SectionAnalysis[],
   examMinutes: number = CLAT_EXAM_MINUTES,
-  opts: { omrBuffer?: number; gkCap?: number } = {},
+  opts: {
+    omrBuffer?: number;
+    gkCap?: number;
+    sectionDifficulty?: Record<string, SectionDifficulty>;
+  } = {},
 ): TimePlan {
   const omrBuffer = Math.max(0, opts.omrBuffer ?? OMR_BUFFER_MINUTES);
   const gkCap = Math.max(1, opts.gkCap ?? GK_MAX_MINUTES);
+  const sectionDifficulty = opts.sectionDifficulty ?? {};
   const solvingBudget = Math.max(1, examMinutes - omrBuffer);
 
   const totalQ = sections.reduce((a, s) => a + s.total, 0) || 1;
 
   const factorOf = (s: SectionAnalysis) => {
     const acc = s.attempted > 0 ? s.accuracy : 70;
-    return Math.min(1.4, Math.max(0.7, 1.35 - acc / 100));
+    const base = Math.min(1.4, Math.max(0.7, 1.35 - acc / 100));
+    const diff = sectionDifficulty[s.key];
+    const multiplier = diff ? DIFFICULTY_MULTIPLIER[diff] : 1.0;
+    return Math.min(1.65, Math.max(0.55, base * multiplier));
   };
 
   // Step 1: pull the GK section out and cap it.
   const gk = sections.find((s) => s.key === "currentAffairs");
   const gkMinutes = gk ? Math.min(gkCap, solvingBudget * 0.18) : 0;
-  // (~18% of solving budget is the natural cap; we also clamp at gkCap.)
 
   // Step 2: distribute the remaining solving minutes across other sections.
   const others = sections.filter((s) => s.key !== "currentAffairs");
@@ -87,10 +106,19 @@ export function buildTimePlan(
     const delta = minutes - baseline;
     const secondsPerQ = (minutes * 60) / Math.max(1, s.total);
     const factor = factorOf(s);
+    const diff = sectionDifficulty[s.key];
 
     let reason: string;
     if (s.key === "currentAffairs") {
       reason = `Capped at ${gkCap} min — recall-based, extra time wasted`;
+    } else if (diff && diff !== "Medium") {
+      const diffLabel = diff === "Hard" ? "Hard paper — extra time allocated" : "Easy paper — time trimmed";
+      if (s.attempted > 0) {
+        const accLabel = factor >= 1.15 ? ", accuracy below 70%" : factor <= 0.85 ? ", accuracy above 85%" : "";
+        reason = `${diffLabel}${accLabel}`;
+      } else {
+        reason = diffLabel;
+      }
     } else if (s.attempted > 0) {
       if (factor >= 1.15) reason = "Slow down — accuracy below 70%";
       else if (factor <= 0.85) reason = "Tighten — accuracy above 85%";
@@ -122,6 +150,20 @@ export function buildTimePlan(
   insights.push(
     `Cap Current Affairs & GK at ${gkCap} min — if you don't know the fact in 30s, mark and move; rereading recall questions doesn't help.`,
   );
+
+  // Difficulty callout if any sections are non-Medium
+  const hardSections = sections.filter((s) => sectionDifficulty[s.key] === "Hard");
+  const easySections = sections.filter((s) => sectionDifficulty[s.key] === "Easy");
+  if (hardSections.length > 0) {
+    insights.push(
+      `Difficulty override applied: ${hardSections.map((s) => s.name).join(", ")} marked Hard — time weight increased by 22% for those sections.`,
+    );
+  }
+  if (easySections.length > 0) {
+    insights.push(
+      `Difficulty override applied: ${easySections.map((s) => s.name).join(", ")} marked Easy — time weight reduced by 18% for those sections.`,
+    );
+  }
 
   if (!attempted.length) {
     insights.push(
