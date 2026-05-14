@@ -66,12 +66,49 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
   return brandedErrorResponse();
 }
 
+/**
+ * Rewrite Set-Cookie headers so they include SameSite=None; Secure.
+ * Required for cookies to work inside the Replit preview iframe (cross-site context).
+ */
+function applyIframeCookiePolicy(response: Response): Response {
+  const headers = response.headers as Headers & { getSetCookie?(): string[] };
+  const setCookies: string[] =
+    typeof headers.getSetCookie === "function"
+      ? headers.getSetCookie()
+      : (response.headers.get("set-cookie") ?? "")
+          .split(/,(?=[^;])/)
+          .map((s) => s.trim())
+          .filter(Boolean);
+
+  if (!setCookies.length) return response;
+
+  const newHeaders = new Headers(response.headers);
+  newHeaders.delete("set-cookie");
+  for (let cookie of setCookies) {
+    if (!/samesite/i.test(cookie)) {
+      cookie += "; SameSite=None";
+    } else {
+      cookie = cookie.replace(/samesite=\w+/gi, "SameSite=None");
+    }
+    if (!/\bsecure\b/i.test(cookie)) {
+      cookie += "; Secure";
+    }
+    newHeaders.append("set-cookie", cookie);
+  }
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: newHeaders,
+  });
+}
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response);
+      const normalized = await normalizeCatastrophicSsrResponse(response);
+      return applyIframeCookiePolicy(normalized);
     } catch (error) {
       console.error(error);
       return brandedErrorResponse();
