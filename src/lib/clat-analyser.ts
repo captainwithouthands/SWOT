@@ -11,6 +11,8 @@ export interface SectionInput {
   attempted: number;
   correct: number;
   total: number;
+  /** Minutes actually spent on this section during the mock (optional debrief field). */
+  minutesSpent?: number;
 }
 
 export interface SectionAnalysis extends SectionInput {
@@ -49,7 +51,12 @@ export function analyseSection(s: SectionInput): SectionAnalysis {
 
 export function buildSwot(
   sections: SectionAnalysis[],
-  ctx: { totalScore?: number; cutoffMarks?: number } = {},
+  ctx: {
+    totalScore?: number;
+    cutoffMarks?: number;
+    /** Recommended minutes per section key (from buildTimePlan) — enables time debrief bullets. */
+    recommendedMinutes?: Record<string, number>;
+  } = {},
 ): SwotResult {
   const strengths: string[] = [];
   const weaknesses: string[] = [];
@@ -179,6 +186,49 @@ export function buildSwot(
     opportunities.push(
       `${bigUnattempted.name} is a ${bigUnattempted.total}-mark section but you only attempted ${bigUnattempted.attempted}. Allocating 5 more minutes here usually outperforms accuracy drills.`,
     );
+  }
+
+  // Time-based debrief (only when minutesSpent data is provided)
+  if (ctx.recommendedMinutes) {
+    const recMin = ctx.recommendedMinutes;
+    const timedSections = sections.filter((s) => s.minutesSpent != null && recMin[s.key]);
+    timedSections.forEach((s) => {
+      const spent = s.minutesSpent!;
+      const rec = recMin[s.key];
+      const ratio = spent / rec;
+      const overBy = +(spent - rec).toFixed(0);
+
+      if (ratio > 1.25 && s.accuracy < 65 && s.attempted > 0) {
+        weaknesses.push(
+          `${s.name}: time-accuracy double loss — ${spent} min used vs ${rec.toFixed(0)} min recommended (+${overBy} min) at only ${s.accuracy.toFixed(0)}% accuracy. Slow and inaccurate is the costliest pattern in CLAT.`,
+        );
+      } else if (ratio > 1.25 && s.accuracy >= 65 && s.attempted > 0) {
+        threats.push(
+          `${s.name}: pacing drag — ${spent} min vs ${rec.toFixed(0)} min recommended (+${overBy} min over). You're accurate but too slow; this starves time from other sections.`,
+        );
+      } else if (ratio < 0.82 && s.accuracy >= 75 && s.attempted > 0) {
+        strengths.push(
+          `${s.name}: time-efficient — finished in ${spent} min vs ${rec.toFixed(0)} min planned. Healthy surplus; consider redirecting saved time toward weaker sections.`,
+        );
+      }
+
+      if (ratio < 0.85 && s.attemptRate < 70 && s.attempted > 0) {
+        opportunities.push(
+          `${s.name}: finished ${(rec - spent).toFixed(0)} min early but left ${s.total - s.attempted} questions unattempted — reinvest that saved time for more attempts.`,
+        );
+      }
+    });
+
+    if (timedSections.length >= 3) {
+      const totalSpent = timedSections.reduce((a, s) => a + (s.minutesSpent ?? 0), 0);
+      const totalRec = timedSections.reduce((a, s) => a + (recMin[s.key] ?? 0), 0);
+      const overallOver = +(totalSpent - totalRec).toFixed(0);
+      if (overallOver >= 8) {
+        threats.push(
+          `Overall pacing: ${totalSpent} min used across ${timedSections.length} sections vs ${totalRec.toFixed(0)} min planned (+${overallOver} min). In a real exam this eats into your OMR buffer — work on cut-offs per section.`,
+        );
+      }
+    }
   }
 
   if (!strengths.length)

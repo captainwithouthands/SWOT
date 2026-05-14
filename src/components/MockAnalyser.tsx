@@ -24,6 +24,7 @@ import {
   type SectionInput,
 } from "@/lib/clat-analyser";
 import { SectionTotalsEditor } from "./SectionTotalsEditor";
+import { buildTimePlan } from "@/lib/time-allocation";
 import {
   Select,
   SelectContent,
@@ -179,9 +180,14 @@ export function MockAnalyser() {
     () => CLAT_SECTIONS.map((s) => analyseSection(inputs[s.key])),
     [inputs],
   );
+  const timePlan = useMemo(() => buildTimePlan(analyses), [analyses]);
   const swot = useMemo(
-    () => buildSwot(analyses, { totalScore: analyses.reduce((a, s) => a + s.score, 0) }),
-    [analyses],
+    () =>
+      buildSwot(analyses, {
+        totalScore: analyses.reduce((a, s) => a + s.score, 0),
+        recommendedMinutes: Object.fromEntries(timePlan.sections.map((p) => [p.key, p.minutes])),
+      }),
+    [analyses, timePlan],
   );
   const t = useMemo(
     () =>
@@ -239,6 +245,7 @@ export function MockAnalyser() {
           total: s.total ?? next[s.key].total,
           attempted: s.attempted ?? 0,
           correct: s.correct ?? 0,
+          minutesSpent: s.minutesSpent,
         };
       }
     });
@@ -284,6 +291,11 @@ export function MockAnalyser() {
       else sec.correct = Math.min(num, sec.attempted);
       return { ...prev, [key]: sec };
     });
+  };
+
+  const updateMinutes = (key: string, v: string) => {
+    const num = v === "" ? undefined : Math.max(0, Math.min(120, parseInt(v) || 0));
+    setInputs((prev) => ({ ...prev, [key]: { ...prev[key], minutesSpent: num } }));
   };
 
   const reset = () => {
@@ -432,7 +444,7 @@ export function MockAnalyser() {
                     <h3 className="font-semibold">{s.name}</h3>
                     <span className="text-xs text-muted-foreground">/ {max}</span>
                   </div>
-                  <div className="mt-3 grid grid-cols-2 gap-2">
+                  <div className="mt-3 grid grid-cols-3 gap-2">
                     <div>
                       <Label className="text-xs">Attempted</Label>
                       <Input
@@ -453,8 +465,41 @@ export function MockAnalyser() {
                         onChange={(e) => update(s.key, "correct", e.target.value)}
                       />
                     </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Min spent</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={120}
+                        placeholder="–"
+                        value={inputs[s.key].minutesSpent ?? ""}
+                        onChange={(e) => updateMinutes(s.key, e.target.value)}
+                      />
+                    </div>
                   </div>
-                  <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+                  {(() => {
+                    const rec = timePlan.sections.find((p) => p.key === s.key);
+                    const spent = inputs[s.key].minutesSpent;
+                    if (spent == null || !rec) return null;
+                    const diff = spent - rec.minutes;
+                    const isOver = diff > rec.minutes * 0.2;
+                    const isUnder = diff < -(rec.minutes * 0.15);
+                    return (
+                      <div className={`mt-1.5 flex items-center justify-between rounded px-2 py-1 text-[11px] ${
+                        isOver
+                          ? "bg-swot-weakness/10 text-swot-weakness"
+                          : isUnder
+                          ? "bg-swot-strength/10 text-swot-strength"
+                          : "bg-muted/40 text-muted-foreground"
+                      }`}>
+                        <span>vs plan ({rec.minutes.toFixed(0)} min)</span>
+                        <span className="font-semibold">
+                          {diff > 0 ? `+${diff.toFixed(0)}m over` : diff < 0 ? `${diff.toFixed(0)}m under` : "on plan"}
+                        </span>
+                      </div>
+                    );
+                  })()}
+                  <div className="mt-2 space-y-1 text-xs text-muted-foreground">
                     <div className="flex justify-between">
                       <span>Net score</span>
                       <span className="font-medium text-foreground">{a.score.toFixed(2)}</span>

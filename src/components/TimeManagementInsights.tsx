@@ -76,7 +76,7 @@ function DifficultyToggle({
   onChange: (key: string, d: SectionDifficulty) => void;
 }) {
   return (
-    <div className="flex overflow-hidden rounded border border-border" title="Section paper difficulty">
+    <div className="flex overflow-hidden rounded border border-border" title="Expected difficulty for next exam">
       {DIFFICULTIES.map((d) => {
         const isActive = value === d;
         return (
@@ -194,8 +194,11 @@ export function TimeManagementInsights({ sections }: { sections: SectionAnalysis
     <Card className="shadow-[var(--shadow-soft)]">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Clock className="h-4 w-4 text-brand" /> Time-management plan
-          <span className="ml-2 text-xs font-normal text-muted-foreground">
+          <Clock className="h-4 w-4 text-brand" /> Future time-management plan
+          <span className="ml-1 rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-medium text-brand">
+            Next exam
+          </span>
+          <span className="ml-auto text-xs font-normal text-muted-foreground">
             {plan.solvingBudget} min solving · {plan.omrBuffer} min OMR · {plan.total} min total
           </span>
         </CardTitle>

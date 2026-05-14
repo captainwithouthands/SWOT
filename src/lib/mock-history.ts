@@ -17,7 +17,7 @@ export interface MockRecord {
   rank?: number;
   cohortSize?: number;
   rankMode?: "national" | "batch";
-  sections: { key: string; name: string; score: number; accuracy: number; attempted?: number; correct?: number; total?: number }[];
+  sections: { key: string; name: string; score: number; accuracy: number; attempted?: number; correct?: number; total?: number; minutesSpent?: number }[];
   source?: string;
   mockType?: MockType;
   difficulty?: Difficulty;
@@ -242,6 +242,7 @@ export function buildRecord(
       attempted: a.attempted,
       correct: a.correct,
       total: a.total,
+      minutesSpent: a.minutesSpent,
     })),
     source: meta.source,
     mockType: meta.mockType,
