@@ -9,7 +9,7 @@ export function useAuth() {
 
   useEffect(() => {
     // Set up listener BEFORE getSession (per Supabase guidance)
-    const { data: sub } = supabase.auth.onAuthStateChange((_evt, s) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_evt, s) => {
       setSession(s);
       setUser(s?.user ?? null);
     });
@@ -18,7 +18,7 @@ export function useAuth() {
       setUser(data.session?.user ?? null);
       setLoading(false);
     });
-    return () => sub.subscription.unsubscribe();
+    return () => subscription.unsubscribe();
   }, []);
 
   return { session, user, loading };
