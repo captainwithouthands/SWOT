@@ -15,6 +15,8 @@ export interface SectionInput {
   minutesSpent?: number;
   /** Deep analysis: per question-type wrong count. Key = QuestionType.key. */
   questionTypeBreakdown?: Record<string, number>;
+  /** How difficult the user found this section today. */
+  perceivedDifficulty?: "Easy" | "Medium" | "Hard";
 }
 
 export interface SectionAnalysis extends SectionInput {

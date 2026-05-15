@@ -249,6 +249,7 @@ export function MockAnalyser() {
           correct: s.correct ?? 0,
           minutesSpent: s.minutesSpent,
           questionTypeBreakdown: s.questionTypeBreakdown,
+          perceivedDifficulty: s.perceivedDifficulty as "Easy" | "Medium" | "Hard" | undefined,
         };
       }
     });
@@ -299,6 +300,16 @@ export function MockAnalyser() {
   const updateMinutes = (key: string, v: string) => {
     const num = v === "" ? undefined : Math.max(0, Math.min(120, parseInt(v) || 0));
     setInputs((prev) => ({ ...prev, [key]: { ...prev[key], minutesSpent: num } }));
+  };
+
+  const updateDifficulty = (key: string, d: "Easy" | "Medium" | "Hard") => {
+    setInputs((prev) => ({
+      ...prev,
+      [key]: {
+        ...prev[key],
+        perceivedDifficulty: prev[key].perceivedDifficulty === d ? undefined : d,
+      },
+    }));
   };
 
   const updateBreakdown = (sectionKey: string, typeKey: string, delta: number) => {
@@ -462,6 +473,33 @@ export function MockAnalyser() {
                     <h3 className="font-semibold">{s.name}</h3>
                     <span className="text-xs text-muted-foreground">/ {max}</span>
                   </div>
+
+                  {/* Per-section difficulty selector */}
+                  <div className="mt-1.5 flex items-center gap-1.5">
+                    <span className="text-[10px] text-muted-foreground">Difficulty:</span>
+                    {(["Easy", "Medium", "Hard"] as const).map((d) => {
+                      const active = inputs[s.key].perceivedDifficulty === d;
+                      return (
+                        <button
+                          key={d}
+                          type="button"
+                          onClick={() => updateDifficulty(s.key, d)}
+                          className={`rounded px-1.5 py-0.5 text-[10px] font-semibold transition-all ${
+                            active
+                              ? d === "Easy"
+                                ? "bg-swot-strength/15 text-swot-strength ring-1 ring-swot-strength/40"
+                                : d === "Medium"
+                                ? "bg-amber-500/15 text-amber-600 ring-1 ring-amber-500/40"
+                                : "bg-swot-weakness/15 text-swot-weakness ring-1 ring-swot-weakness/40"
+                              : "text-muted-foreground hover:bg-muted/50"
+                          }`}
+                        >
+                          {d[0]}
+                        </button>
+                      );
+                    })}
+                  </div>
+
                   <div className="mt-3 grid grid-cols-3 gap-2">
                     <div>
                       <Label className="text-xs">Attempted</Label>

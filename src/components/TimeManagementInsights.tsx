@@ -234,7 +234,21 @@ const checkpointMeta: Record<CheckpointType, { Icon: React.ElementType; dotCls: 
 
 /* ─── Today's Pacing Panel ────────────────────────────────────────── */
 
-function TodayPanel({ sections, defaultPlan }: { sections: SectionAnalysis[]; defaultPlan: ReturnType<typeof buildTimePlan> }) {
+function TodayPanel({
+  sections,
+  defaultPlan,
+  todayOrder,
+  onMoveSection,
+}: {
+  sections: SectionAnalysis[];
+  defaultPlan: ReturnType<typeof buildTimePlan>;
+  todayOrder: string[];
+  onMoveSection: (key: string, dir: -1 | 1) => void;
+}) {
+  const orderedSections = todayOrder
+    .map((k) => sections.find((s) => s.key === k))
+    .filter((s): s is SectionAnalysis => !!s);
+
   const hasData = sections.some((s) => s.minutesSpent != null);
   const totalSpent = sections.reduce((a, s) => a + (s.minutesSpent ?? 0), 0);
   const maxBar = Math.max(
@@ -259,6 +273,45 @@ function TodayPanel({ sections, defaultPlan }: { sections: SectionAnalysis[]; de
 
   return (
     <div className="space-y-5">
+      {/* Today's attempt order */}
+      <div className="rounded-lg border bg-muted/20 px-3 py-2.5">
+        <p className="mb-2 text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+          Today's attempt order
+        </p>
+        <div className="space-y-1">
+          {todayOrder.map((key, idx) => {
+            const sec = sections.find((s) => s.key === key);
+            if (!sec) return null;
+            return (
+              <div key={key} className="flex items-center gap-2">
+                <span className="w-5 shrink-0 text-center text-[11px] font-bold text-brand tabular-nums">
+                  {idx + 1}
+                </span>
+                <span className="flex-1 text-xs truncate">{sec.name}</span>
+                <div className="flex gap-0.5">
+                  <button
+                    type="button"
+                    disabled={idx === 0}
+                    onClick={() => onMoveSection(key, -1)}
+                    className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground disabled:opacity-25 hover:bg-muted/60 text-[11px]"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    disabled={idx === todayOrder.length - 1}
+                    onClick={() => onMoveSection(key, 1)}
+                    className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground disabled:opacity-25 hover:bg-muted/60 text-[11px]"
+                  >
+                    ↓
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Summary strip */}
       <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-3 py-2 text-sm">
         <span className="text-muted-foreground">Total time recorded</span>
@@ -272,9 +325,9 @@ function TodayPanel({ sections, defaultPlan }: { sections: SectionAnalysis[]; de
         </span>
       </div>
 
-      {/* Section bars */}
+      {/* Section bars — rendered in today's attempt order */}
       <div className="space-y-4">
-        {sections.map((s) => {
+        {orderedSections.map((s) => {
           const spent = s.minutesSpent;
           const rec = defaultPlan.sections.find((p) => p.key === s.key)?.minutes ?? 0;
           const hasSpent = spent != null;
@@ -621,6 +674,19 @@ export function TimeManagementInsights({ sections }: { sections: SectionAnalysis
   const [omrBuffer, setOmrBuffer] = useState(OMR_BUFFER_MINUTES);
   const [sectionDifficulty, setSectionDifficulty] = useState<Record<string, SectionDifficulty>>({});
   const [sectionOrder, setSectionOrder] = useState<string[]>(() => sections.map((s) => s.key));
+  const [todayOrder, setTodayOrder] = useState<string[]>(() => sections.map((s) => s.key));
+
+  const moveTodaySection = (key: string, dir: -1 | 1) => {
+    setTodayOrder((prev) => {
+      const idx = prev.indexOf(key);
+      if (idx < 0) return prev;
+      const newIdx = idx + dir;
+      if (newIdx < 0 || newIdx >= prev.length) return prev;
+      const arr = [...prev];
+      [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
+      return arr;
+    });
+  };
 
   const defaultPlan = buildTimePlan(sections);
 
@@ -693,7 +759,12 @@ export function TimeManagementInsights({ sections }: { sections: SectionAnalysis
         >
           {/* Panel 0 — Today's pacing */}
           <div className="w-1/2 min-w-0 pr-6">
-            <TodayPanel sections={sections} defaultPlan={defaultPlan} />
+            <TodayPanel
+              sections={sections}
+              defaultPlan={defaultPlan}
+              todayOrder={todayOrder}
+              onMoveSection={moveTodaySection}
+            />
           </div>
 
           {/* Panel 1 — Recommended plan */}
