@@ -21,6 +21,7 @@ import {
   totals,
   COHORT_PRESETS,
   TOP_COLLEGE_CUTOFF,
+  QUESTION_TYPES,
   type SectionInput,
 } from "@/lib/clat-analyser";
 import { SectionTotalsEditor } from "./SectionTotalsEditor";
@@ -98,6 +99,7 @@ export function MockAnalyser() {
 
   const [inputs, setInputs] = useState(initial);
   const [history, setHistory] = useState<MockRecord[]>([]);
+  const [deepEnabled, setDeepEnabled] = useState<Record<string, boolean>>({});
   const [cohortSize, setCohortSize] = useState<number>(60000);
   const [topperScore, setTopperScore] = useState<number | "">("");
   const [meta, setMeta] = useState<MetaState>(blankMeta);
@@ -246,6 +248,7 @@ export function MockAnalyser() {
           attempted: s.attempted ?? 0,
           correct: s.correct ?? 0,
           minutesSpent: s.minutesSpent,
+          questionTypeBreakdown: s.questionTypeBreakdown,
         };
       }
     });
@@ -296,6 +299,21 @@ export function MockAnalyser() {
   const updateMinutes = (key: string, v: string) => {
     const num = v === "" ? undefined : Math.max(0, Math.min(120, parseInt(v) || 0));
     setInputs((prev) => ({ ...prev, [key]: { ...prev[key], minutesSpent: num } }));
+  };
+
+  const updateBreakdown = (sectionKey: string, typeKey: string, delta: number) => {
+    setInputs((prev) => {
+      const sec = prev[sectionKey];
+      const current = sec.questionTypeBreakdown ?? {};
+      const next = Math.max(0, (current[typeKey] ?? 0) + delta);
+      return {
+        ...prev,
+        [sectionKey]: {
+          ...sec,
+          questionTypeBreakdown: { ...current, [typeKey]: next },
+        },
+      };
+    });
   };
 
   const reset = () => {
@@ -509,6 +527,70 @@ export function MockAnalyser() {
                       <span className="font-medium text-foreground">{a.accuracy.toFixed(0)}%</span>
                     </div>
                     <Progress value={a.accuracy} className="h-1.5" />
+                  </div>
+
+                  {/* Deep analysis toggle */}
+                  <div className="mt-3 border-t pt-3">
+                    <label className="flex cursor-pointer items-center gap-2 text-xs font-medium select-none">
+                      <input
+                        type="checkbox"
+                        checked={!!deepEnabled[s.key]}
+                        onChange={(e) =>
+                          setDeepEnabled((prev) => ({ ...prev, [s.key]: e.target.checked }))
+                        }
+                        className="h-3.5 w-3.5 accent-primary"
+                      />
+                      Deep analysis
+                    </label>
+
+                    {deepEnabled[s.key] && (
+                      <div className="mt-2.5">
+                        <p className="mb-2 text-[10px] text-muted-foreground">
+                          How many did you get wrong per type?
+                        </p>
+                        <div className="grid grid-cols-1 gap-y-1.5">
+                          {QUESTION_TYPES[s.key].map((qt) => {
+                            const val = inputs[s.key].questionTypeBreakdown?.[qt.key] ?? 0;
+                            return (
+                              <div key={qt.key} className="flex items-center justify-between gap-2">
+                                <span className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground" title={qt.label}>
+                                  {qt.label}
+                                </span>
+                                <div className="flex shrink-0 items-center gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => updateBreakdown(s.key, qt.key, -1)}
+                                    disabled={val === 0}
+                                    className="flex h-5 w-5 items-center justify-center rounded border text-[11px] font-bold leading-none text-muted-foreground disabled:opacity-30 hover:bg-muted/50"
+                                  >
+                                    −
+                                  </button>
+                                  <span className={`w-5 text-center text-[11px] font-semibold tabular-nums ${val > 0 ? "text-swot-weakness" : "text-muted-foreground"}`}>
+                                    {val}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => updateBreakdown(s.key, qt.key, 1)}
+                                    className="flex h-5 w-5 items-center justify-center rounded border text-[11px] font-bold leading-none text-muted-foreground hover:bg-muted/50"
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        {(() => {
+                          const bd = inputs[s.key].questionTypeBreakdown ?? {};
+                          const total = Object.values(bd).reduce((a, v) => a + v, 0);
+                          return total > 0 ? (
+                            <p className="mt-2 text-[10px] text-muted-foreground">
+                              {total} wrong entered · SWOT will include pinpoint drill advice
+                            </p>
+                          ) : null;
+                        })()}
+                      </div>
+                    )}
                   </div>
                 </div>
               );

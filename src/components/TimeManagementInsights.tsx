@@ -184,8 +184,9 @@ function buildCheckpoints(plan: TimePlan): Checkpoint[] {
       sublabel: `${Math.round(sec.minutes)} min window · ${sec.secondsPerQ}s per question`,
     });
 
-    if (sec.total > 0 && sec.minutes > 0) {
-      const minPerQ = sec.minutes / sec.total;
+    const secTotal = sec.secondsPerQ > 0 ? Math.round((sec.minutes * 60) / sec.secondsPerQ) : 0;
+    if (secTotal > 0 && sec.minutes > 0) {
+      const minPerQ = sec.minutes / secTotal;
       const interval = 25 * minPerQ;
       let t = start + interval;
       let batch = 1;
