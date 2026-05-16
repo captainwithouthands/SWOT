@@ -44,7 +44,16 @@ import { SwotQuadrants } from "./SwotQuadrants";
 import { MockUpload } from "./MockUpload";
 import { Toaster } from "@/components/ui/sonner";
 import { applyParsed, type ParseReport } from "@/lib/mock-parser";
-import { Scale, Sparkles, RotateCcw, TrendingUp, FileDown, LogOut, Cloud, CloudOff } from "lucide-react";
+import {
+  Scale,
+  Sparkles,
+  RotateCcw,
+  TrendingUp,
+  FileDown,
+  LogOut,
+  Cloud,
+  CloudOff,
+} from "lucide-react";
 import {
   ResponsiveContainer,
   RadarChart,
@@ -110,11 +119,19 @@ export function MockAnalyser() {
     if (typeof window === "undefined") return;
     const savedInputs = localStorage.getItem("clat-current-inputs");
     if (savedInputs) {
-      try { setInputs(JSON.parse(savedInputs)); } catch { /* noop */ }
+      try {
+        setInputs(JSON.parse(savedInputs));
+      } catch {
+        /* noop */
+      }
     }
     const savedMeta = localStorage.getItem("clat-current-meta");
     if (savedMeta) {
-      try { setMeta({ ...blankMeta, ...JSON.parse(savedMeta) }); } catch { /* noop */ }
+      try {
+        setMeta({ ...blankMeta, ...JSON.parse(savedMeta) });
+      } catch {
+        /* noop */
+      }
     }
     const c = localStorage.getItem("clat-cohort-size");
     if (c) setCohortSize(parseInt(c) || 60000);
@@ -124,10 +141,12 @@ export function MockAnalyser() {
 
   // Auto-snapshot inputs + meta to localStorage
   useEffect(() => {
-    if (typeof window !== "undefined") localStorage.setItem("clat-current-inputs", JSON.stringify(inputs));
+    if (typeof window !== "undefined")
+      localStorage.setItem("clat-current-inputs", JSON.stringify(inputs));
   }, [inputs]);
   useEffect(() => {
-    if (typeof window !== "undefined") localStorage.setItem("clat-current-meta", JSON.stringify(meta));
+    if (typeof window !== "undefined")
+      localStorage.setItem("clat-current-meta", JSON.stringify(meta));
   }, [meta]);
   useEffect(() => {
     if (typeof window !== "undefined") localStorage.setItem("clat-cohort-size", String(cohortSize));
@@ -140,22 +159,27 @@ export function MockAnalyser() {
   // Load history when auth state is known
   useEffect(() => {
     if (authLoading) return;
-    loadHistory(userId).then(setHistory).catch((e) => {
-      console.error(e);
-      toast.error("Could not load history");
-    });
+    loadHistory(userId)
+      .then(setHistory)
+      .catch((e) => {
+        console.error(e);
+        toast.error("Could not load history");
+      });
   }, [authLoading, userId]);
 
   // First sign-in: offer to import local history
   useEffect(() => {
     if (!userId || importPrompted) return;
     if (typeof window === "undefined") return;
-    const local = localStorage.getItem("clat-mock-history-v2") || localStorage.getItem("clat-mock-history-v1");
+    const local =
+      localStorage.getItem("clat-mock-history-v2") || localStorage.getItem("clat-mock-history-v1");
     if (!local || local === "[]") return;
     try {
       const arr = JSON.parse(local);
       if (!Array.isArray(arr) || !arr.length) return;
-    } catch { return; }
+    } catch {
+      return;
+    }
     setImportPrompted(true);
     toast("Import local mocks to your cloud account?", {
       duration: 12000,
@@ -178,10 +202,7 @@ export function MockAnalyser() {
   const cohortPreset = COHORT_PRESETS.find((c) => c.size === cohortSize) ?? COHORT_PRESETS[3];
   const isBatch = cohortPreset.kind === "batch";
 
-  const analyses = useMemo(
-    () => CLAT_SECTIONS.map((s) => analyseSection(inputs[s.key])),
-    [inputs],
-  );
+  const analyses = useMemo(() => CLAT_SECTIONS.map((s) => analyseSection(inputs[s.key])), [inputs]);
   const timePlan = useMemo(() => buildTimePlan(analyses), [analyses]);
   const swot = useMemo(
     () =>
@@ -339,7 +360,13 @@ export function MockAnalyser() {
   const fillSample = () => {
     setInputs({
       english: { key: "english", name: "English Language", total: 24, attempted: 22, correct: 18 },
-      currentAffairs: { key: "currentAffairs", name: "Current Affairs & GK", total: 28, attempted: 26, correct: 14 },
+      currentAffairs: {
+        key: "currentAffairs",
+        name: "Current Affairs & GK",
+        total: 28,
+        attempted: 26,
+        correct: 14,
+      },
       legal: { key: "legal", name: "Legal Reasoning", total: 32, attempted: 30, correct: 25 },
       logical: { key: "logical", name: "Logical Reasoning", total: 24, attempted: 16, correct: 13 },
       quant: { key: "quant", name: "Quantitative Techniques", total: 12, attempted: 6, correct: 4 },
@@ -401,8 +428,8 @@ export function MockAnalyser() {
             Turn every mock into a sharper strategy.
           </h1>
           <p className="mt-3 max-w-2xl text-base opacity-90 md:text-lg">
-            Enter your section-wise attempts and get an instant SWOT analysis,
-            accuracy radar, and a projected percentile for CLAT.
+            Enter your section-wise attempts and get an instant SWOT analysis, accuracy radar, and a
+            projected percentile for CLAT.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Button variant="secondary" onClick={fillSample} className="gap-2">
@@ -489,8 +516,8 @@ export function MockAnalyser() {
                               ? d === "Easy"
                                 ? "bg-swot-strength/15 text-swot-strength ring-1 ring-swot-strength/40"
                                 : d === "Medium"
-                                ? "bg-amber-500/15 text-amber-600 ring-1 ring-amber-500/40"
-                                : "bg-swot-weakness/15 text-swot-weakness ring-1 ring-swot-weakness/40"
+                                  ? "bg-amber-500/15 text-amber-600 ring-1 ring-amber-500/40"
+                                  : "bg-swot-weakness/15 text-swot-weakness ring-1 ring-swot-weakness/40"
                               : "text-muted-foreground hover:bg-muted/50"
                           }`}
                         >
@@ -541,16 +568,22 @@ export function MockAnalyser() {
                     const isOver = diff > rec.minutes * 0.2;
                     const isUnder = diff < -(rec.minutes * 0.15);
                     return (
-                      <div className={`mt-1.5 flex items-center justify-between rounded px-2 py-1 text-[11px] ${
-                        isOver
-                          ? "bg-swot-weakness/10 text-swot-weakness"
-                          : isUnder
-                          ? "bg-swot-strength/10 text-swot-strength"
-                          : "bg-muted/40 text-muted-foreground"
-                      }`}>
+                      <div
+                        className={`mt-1.5 flex items-center justify-between rounded px-2 py-1 text-[11px] ${
+                          isOver
+                            ? "bg-swot-weakness/10 text-swot-weakness"
+                            : isUnder
+                              ? "bg-swot-strength/10 text-swot-strength"
+                              : "bg-muted/40 text-muted-foreground"
+                        }`}
+                      >
                         <span>vs plan ({rec.minutes.toFixed(0)} min)</span>
                         <span className="font-semibold">
-                          {diff > 0 ? `+${diff.toFixed(0)}m over` : diff < 0 ? `${diff.toFixed(0)}m under` : "on plan"}
+                          {diff > 0
+                            ? `+${diff.toFixed(0)}m over`
+                            : diff < 0
+                              ? `${diff.toFixed(0)}m under`
+                              : "on plan"}
                         </span>
                       </div>
                     );
@@ -591,7 +624,10 @@ export function MockAnalyser() {
                             const val = inputs[s.key].questionTypeBreakdown?.[qt.key] ?? 0;
                             return (
                               <div key={qt.key} className="flex items-center justify-between gap-2">
-                                <span className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground" title={qt.label}>
+                                <span
+                                  className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground"
+                                  title={qt.label}
+                                >
                                   {qt.label}
                                 </span>
                                 <div className="flex shrink-0 items-center gap-1">
@@ -603,7 +639,9 @@ export function MockAnalyser() {
                                   >
                                     −
                                   </button>
-                                  <span className={`w-5 text-center text-[11px] font-semibold tabular-nums ${val > 0 ? "text-swot-weakness" : "text-muted-foreground"}`}>
+                                  <span
+                                    className={`w-5 text-center text-[11px] font-semibold tabular-nums ${val > 0 ? "text-swot-weakness" : "text-muted-foreground"}`}
+                                  >
                                     {val}
                                   </span>
                                   <button
@@ -650,10 +688,7 @@ export function MockAnalyser() {
                   (~rank {TOP_COLLEGE_CUTOFF_RANK} in 75k).
                 </p>
               </div>
-              <Select
-                value={String(cohortSize)}
-                onValueChange={(v) => setCohortSize(parseInt(v))}
-              >
+              <Select value={String(cohortSize)} onValueChange={(v) => setCohortSize(parseInt(v))}>
                 <SelectTrigger className="w-full sm:w-[260px]">
                   <SelectValue />
                 </SelectTrigger>
@@ -686,7 +721,9 @@ export function MockAnalyser() {
                   placeholder="e.g. 92.75"
                   value={topperScore}
                   onChange={(e) =>
-                    setTopperScore(e.target.value === "" ? "" : Math.max(0, parseFloat(e.target.value)))
+                    setTopperScore(
+                      e.target.value === "" ? "" : Math.max(0, parseFloat(e.target.value)),
+                    )
                   }
                   className="sm:w-[160px]"
                 />
@@ -700,7 +737,11 @@ export function MockAnalyser() {
           <StatCard label="Net score" value={`${t.score.toFixed(2)} / ${t.total}`} />
           <StatCard label="Overall accuracy" value={`${t.accuracy.toFixed(1)}%`} />
           <StatCard
-            label={t.rankMode === "batch" ? "Rank in batch" : `Projected rank (${cohortSize.toLocaleString()})`}
+            label={
+              t.rankMode === "batch"
+                ? "Rank in batch"
+                : `Projected rank (${cohortSize.toLocaleString()})`
+            }
             value={`#${t.rank.toLocaleString()}`}
             hint={
               t.rankMode === "batch"
@@ -728,7 +769,7 @@ export function MockAnalyser() {
         <Card className="shadow-[var(--shadow-soft)]">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              Save this mock
+              Save this Mock
               <span className="text-xs font-normal text-muted-foreground">
                 {userId ? "→ cloud" : "→ this device only"}
               </span>
@@ -736,7 +777,9 @@ export function MockAnalyser() {
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2">
             <div className="md:col-span-2">
-              <Label htmlFor="mock-label" className="text-xs">Label</Label>
+              <Label htmlFor="mock-label" className="text-xs">
+                Label
+              </Label>
               <Input
                 id="mock-label"
                 placeholder="e.g. CLAT Mock #5 — LegalEdge"
@@ -745,7 +788,9 @@ export function MockAnalyser() {
               />
             </div>
             <div>
-              <Label htmlFor="mock-date" className="text-xs">Mock date</Label>
+              <Label htmlFor="mock-date" className="text-xs">
+                Mock date
+              </Label>
               <Input
                 id="mock-date"
                 type="date"
@@ -754,7 +799,9 @@ export function MockAnalyser() {
               />
             </div>
             <div>
-              <Label htmlFor="mock-source" className="text-xs">Source / test series</Label>
+              <Label htmlFor="mock-source" className="text-xs">
+                Source / test series
+              </Label>
               <Input
                 id="mock-source"
                 placeholder="LegalEdge, CL, IMS…"
@@ -768,9 +815,15 @@ export function MockAnalyser() {
                 value={meta.mockType || undefined}
                 onValueChange={(v) => setMeta({ ...meta, mockType: v as MockType })}
               >
-                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="—" />
+                </SelectTrigger>
                 <SelectContent>
-                  {TYPES.map((tp) => <SelectItem key={tp} value={tp}>{tp}</SelectItem>)}
+                  {TYPES.map((tp) => (
+                    <SelectItem key={tp} value={tp}>
+                      {tp}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -780,9 +833,15 @@ export function MockAnalyser() {
                 value={meta.difficulty || undefined}
                 onValueChange={(v) => setMeta({ ...meta, difficulty: v as Difficulty })}
               >
-                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="—" />
+                </SelectTrigger>
                 <SelectContent>
-                  {DIFFICULTIES.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                  {DIFFICULTIES.map((d) => (
+                    <SelectItem key={d} value={d}>
+                      {d}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -791,7 +850,9 @@ export function MockAnalyser() {
               <TagInput value={meta.tags} onChange={(v) => setMeta({ ...meta, tags: v })} />
             </div>
             <div className="md:col-span-2">
-              <Label htmlFor="mock-notes" className="text-xs">Notes</Label>
+              <Label htmlFor="mock-notes" className="text-xs">
+                Notes
+              </Label>
               <Textarea
                 id="mock-notes"
                 rows={3}
@@ -832,8 +893,20 @@ export function MockAnalyser() {
                       tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
                     />
                     <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                    <Radar name="Accuracy" dataKey="Accuracy" stroke="var(--brand)" fill="var(--brand)" fillOpacity={0.45} />
-                    <Radar name="Attempt" dataKey="Attempt" stroke="var(--swot-opportunity)" fill="var(--swot-opportunity)" fillOpacity={0.2} />
+                    <Radar
+                      name="Accuracy"
+                      dataKey="Accuracy"
+                      stroke="var(--brand)"
+                      fill="var(--brand)"
+                      fillOpacity={0.45}
+                    />
+                    <Radar
+                      name="Attempt"
+                      dataKey="Attempt"
+                      stroke="var(--swot-opportunity)"
+                      fill="var(--swot-opportunity)"
+                      fillOpacity={0.2}
+                    />
                     <Tooltip
                       contentStyle={{
                         background: "var(--popover)",

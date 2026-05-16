@@ -43,12 +43,21 @@ function getOmrAdvice(buf: number): { level: AdviceLevel; text: string } {
       text: "Very tight. Rushed bubbling causes irreversible marking errors — keep at least 13 min.",
     };
   if (buf <= 13)
-    return { level: "warn", text: "A bit tight. Aim for 14+ min so you're not rushing the final bubble-in." };
-  return { level: "ok", text: "Good buffer — enough to bubble carefully without a last-minute scramble." };
+    return {
+      level: "warn",
+      text: "A bit tight. Aim for 14+ min so you're not rushing the final bubble-in.",
+    };
+  return {
+    level: "ok",
+    text: "Good buffer — enough to bubble carefully without a last-minute scramble.",
+  };
 }
 
 const adviceStyles: Record<AdviceLevel, { icon: React.ElementType; cls: string }> = {
-  danger: { icon: AlertCircle, cls: "text-swot-weakness bg-swot-weakness/10 border-swot-weakness/25" },
+  danger: {
+    icon: AlertCircle,
+    cls: "text-swot-weakness bg-swot-weakness/10 border-swot-weakness/25",
+  },
   warn: { icon: AlertTriangle, cls: "text-swot-threat bg-swot-threat/10 border-swot-threat/25" },
   ok: { icon: CheckCircle2, cls: "text-swot-strength bg-swot-strength/10 border-swot-strength/25" },
 };
@@ -58,9 +67,15 @@ const adviceStyles: Record<AdviceLevel, { icon: React.ElementType; cls: string }
 const DIFFICULTIES: SectionDifficulty[] = ["Easy", "Medium", "Hard"];
 
 const diffStyle: Record<SectionDifficulty, { active: string; label: string }> = {
-  Easy: { active: "bg-swot-strength/15 text-swot-strength border-swot-strength/40 font-semibold", label: "E" },
+  Easy: {
+    active: "bg-swot-strength/15 text-swot-strength border-swot-strength/40 font-semibold",
+    label: "E",
+  },
   Medium: { active: "bg-muted text-muted-foreground border-border font-semibold", label: "M" },
-  Hard: { active: "bg-swot-weakness/15 text-swot-weakness border-swot-weakness/40 font-semibold", label: "H" },
+  Hard: {
+    active: "bg-swot-weakness/15 text-swot-weakness border-swot-weakness/40 font-semibold",
+    label: "H",
+  },
 };
 
 function DifficultyToggle({
@@ -133,15 +148,13 @@ function buildAiOrder(sections: SectionAnalysis[]): AiOrderItem[] {
         reason = `32-mark anchor — ${s.accuracy > 0 ? `your ${s.accuracy.toFixed(0)}% accuracy here is your biggest score lever.` : "highest mark weight."} Attack while focus is sharpest.`;
       else if (s.accuracy >= 75 && s.attempted > 0)
         reason = `Strong opener — ${s.accuracy.toFixed(0)}% accuracy builds early confidence and banks marks before pressure peaks.`;
-      else
-        reason = `Best available opener — establishes rhythm and momentum early.`;
+      else reason = `Best available opener — establishes rhythm and momentum early.`;
     } else if (pos === last) {
       if (s.key === "currentAffairs")
         reason = `Recall section — park it last. You either know the fact or you don't; no amount of re-reading helps.`;
       else if (s.accuracy < 50 && s.attempted > 0)
         reason = `Weakest section (${s.accuracy.toFixed(0)}% accuracy) — attempt last so earlier sections aren't contaminated by early frustration.`;
-      else
-        reason = `Close with this — mop up remaining time here.`;
+      else reason = `Close with this — mop up remaining time here.`;
     } else {
       if (s.key === "currentAffairs")
         reason = `Recall-based — cap at 10–12 min and move on regardless of how many you know.`;
@@ -149,8 +162,7 @@ function buildAiOrder(sections: SectionAnalysis[]): AiOrderItem[] {
         reason = `Solid ${s.accuracy.toFixed(0)}% accuracy — maintains momentum through the exam middle.`;
       else if (s.key === "legal")
         reason = `Highest-weight section (32 marks) — prioritised even if accuracy is building.`;
-      else
-        reason = `Mid-exam slot — less opening anxiety, more energy than the close.`;
+      else reason = `Mid-exam slot — less opening anxiety, more energy than the close.`;
     }
     return { key: s.key, name: s.name, position: pos, reason };
   });
@@ -224,12 +236,35 @@ function fmtTime(minFromStart: number): string {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-const checkpointMeta: Record<CheckpointType, { Icon: React.ElementType; dotCls: string; rowCls: string }> = {
-  "exam-start": { Icon: Flag, dotCls: "bg-brand border-brand", rowCls: "font-semibold text-foreground" },
-  "section-start": { Icon: Clock, dotCls: "bg-brand/70 border-brand/70", rowCls: "font-medium text-foreground" },
-  "mini-bubble": { Icon: Pencil, dotCls: "bg-swot-opportunity/60 border-swot-opportunity/60", rowCls: "text-muted-foreground" },
-  "omr-start": { Icon: CheckCheck, dotCls: "bg-swot-strength border-swot-strength", rowCls: "font-semibold text-foreground" },
-  "exam-end": { Icon: Flag, dotCls: "bg-swot-weakness border-swot-weakness", rowCls: "font-semibold text-foreground" },
+const checkpointMeta: Record<
+  CheckpointType,
+  { Icon: React.ElementType; dotCls: string; rowCls: string }
+> = {
+  "exam-start": {
+    Icon: Flag,
+    dotCls: "bg-brand border-brand",
+    rowCls: "font-semibold text-foreground",
+  },
+  "section-start": {
+    Icon: Clock,
+    dotCls: "bg-brand/70 border-brand/70",
+    rowCls: "font-medium text-foreground",
+  },
+  "mini-bubble": {
+    Icon: Pencil,
+    dotCls: "bg-swot-opportunity/60 border-swot-opportunity/60",
+    rowCls: "text-muted-foreground",
+  },
+  "omr-start": {
+    Icon: CheckCheck,
+    dotCls: "bg-swot-strength border-swot-strength",
+    rowCls: "font-semibold text-foreground",
+  },
+  "exam-end": {
+    Icon: Flag,
+    dotCls: "bg-swot-weakness border-swot-weakness",
+    rowCls: "font-semibold text-foreground",
+  },
 };
 
 /* ─── Today's Pacing Panel ────────────────────────────────────────── */
@@ -262,7 +297,8 @@ function TodayPanel({
       <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
         <Clock className="h-8 w-8 text-muted-foreground/40" />
         <p className="text-sm text-muted-foreground">
-          Enter <span className="font-semibold">Min spent</span> for each section above to see how you paced today.
+          Enter <span className="font-semibold">Min spent</span> for each section above to see how
+          you paced today.
         </p>
         <p className="text-xs text-muted-foreground/70">
           Bars will show your actual time vs the recommended plan side-by-side.
@@ -318,8 +354,14 @@ function TodayPanel({
         <span className="font-semibold tabular-nums">
           {totalSpent} min
           {totalSpent > 0 && (
-            <span className={`ml-2 text-xs ${totalSpent > CLAT_EXAM_MINUTES ? "text-swot-weakness" : "text-muted-foreground"}`}>
-              ({totalSpent > CLAT_EXAM_MINUTES ? `${totalSpent - CLAT_EXAM_MINUTES}m over exam limit` : `${CLAT_EXAM_MINUTES - totalSpent}m unaccounted`})
+            <span
+              className={`ml-2 text-xs ${totalSpent > CLAT_EXAM_MINUTES ? "text-swot-weakness" : "text-muted-foreground"}`}
+            >
+              (
+              {totalSpent > CLAT_EXAM_MINUTES
+                ? `${totalSpent - CLAT_EXAM_MINUTES}m over exam limit`
+                : `${CLAT_EXAM_MINUTES - totalSpent}m unaccounted`}
+              )
             </span>
           )}
         </span>
@@ -334,12 +376,16 @@ function TodayPanel({
           const ratio = hasSpent ? spent / rec : null;
           const isOver = ratio != null && ratio > 1.2;
           const isUnder = ratio != null && ratio < 0.82;
-          const tone = isOver ? "text-swot-weakness" : isUnder ? "text-swot-strength" : "text-muted-foreground";
+          const tone = isOver
+            ? "text-swot-weakness"
+            : isUnder
+              ? "text-swot-strength"
+              : "text-muted-foreground";
           const barColor = isOver
             ? "bg-swot-weakness/70"
             : isUnder
-            ? "bg-swot-strength/70"
-            : "bg-brand/70";
+              ? "bg-swot-strength/70"
+              : "bg-brand/70";
 
           return (
             <div key={s.key} className="space-y-1.5">
@@ -353,7 +399,11 @@ function TodayPanel({
                         vs {rec.toFixed(0)} min plan
                         {ratio != null && ratio !== 1 && (
                           <span className="ml-1 font-semibold">
-                            ({isOver ? `+${(spent! - rec).toFixed(0)}m over` : `-${(rec - spent!).toFixed(0)}m under`})
+                            (
+                            {isOver
+                              ? `+${(spent! - rec).toFixed(0)}m over`
+                              : `-${(rec - spent!).toFixed(0)}m under`}
+                            )
                           </span>
                         )}
                       </span>
@@ -368,7 +418,9 @@ function TodayPanel({
               <div className="space-y-1">
                 {hasSpent && (
                   <div className="flex items-center gap-2">
-                    <span className="w-12 shrink-0 text-right text-[10px] text-muted-foreground">Actual</span>
+                    <span className="w-12 shrink-0 text-right text-[10px] text-muted-foreground">
+                      Actual
+                    </span>
                     <div className="flex-1 rounded-full bg-muted/40 h-2.5 overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all duration-500 ${barColor}`}
@@ -378,7 +430,9 @@ function TodayPanel({
                   </div>
                 )}
                 <div className="flex items-center gap-2">
-                  <span className="w-12 shrink-0 text-right text-[10px] text-muted-foreground">Plan</span>
+                  <span className="w-12 shrink-0 text-right text-[10px] text-muted-foreground">
+                    Plan
+                  </span>
                   <div className="flex-1 rounded-full bg-muted/40 h-1.5 overflow-hidden">
                     <div
                       className="h-full rounded-full bg-brand/30 transition-all duration-500"
@@ -396,8 +450,8 @@ function TodayPanel({
                       {ratio > 1.2
                         ? `— slow relative to accuracy`
                         : ratio < 0.82
-                        ? `— time-efficient`
-                        : `— on-pace`}
+                          ? `— time-efficient`
+                          : `— on-pace`}
                     </span>
                   )}
                 </p>
@@ -475,7 +529,8 @@ function PlanPanel({
         {showAi && (
           <div className="border-t px-4 pb-4 pt-3 space-y-3">
             <p className="text-[11px] text-muted-foreground">
-              Based on your accuracy profile — tackles high-value sections early when focus is sharpest.
+              Based on your accuracy profile — tackles high-value sections early when focus is
+              sharpest.
             </p>
             <ol className="space-y-2">
               {aiOrder.map((item) => (
@@ -507,19 +562,21 @@ function PlanPanel({
       {/* ── Section order editor + allocation bars ── */}
       <div className="space-y-3">
         <p className="text-[11px] text-muted-foreground">
-          Drag the order you'll attempt sections · tap <span className="font-semibold">E · M · H</span> to adjust for expected difficulty.
+          Drag the order you'll attempt sections · tap{" "}
+          <span className="font-semibold">E · M · H</span> to adjust for perceived difficulty.
         </p>
 
         {sectionOrder.map((key, idx) => {
           const p = plan.sections.find((x) => x.key === key);
           if (!p) return null;
-          const DeltaIcon = p.deltaMinutes > 1.5 ? ArrowUp : p.deltaMinutes < -1.5 ? ArrowDown : Minus;
+          const DeltaIcon =
+            p.deltaMinutes > 1.5 ? ArrowUp : p.deltaMinutes < -1.5 ? ArrowDown : Minus;
           const tone =
             p.deltaMinutes > 1.5
               ? "text-swot-weakness"
               : p.deltaMinutes < -1.5
-              ? "text-swot-strength"
-              : "text-muted-foreground";
+                ? "text-swot-strength"
+                : "text-muted-foreground";
           const currentDiff = sectionDifficulty[key] ?? "Medium";
 
           return (
@@ -587,7 +644,9 @@ function PlanPanel({
               >
                 <Minus className="h-3 w-3" />
               </Button>
-              <span className="w-14 text-center text-sm font-semibold tabular-nums">{omrBuffer} min</span>
+              <span className="w-14 text-center text-sm font-semibold tabular-nums">
+                {omrBuffer} min
+              </span>
               <Button
                 variant="outline"
                 size="icon"
@@ -599,7 +658,9 @@ function PlanPanel({
               </Button>
             </div>
           </div>
-          <div className={`flex items-start gap-2 rounded-md border px-2.5 py-2 text-xs ${adviceCls}`}>
+          <div
+            className={`flex items-start gap-2 rounded-md border px-2.5 py-2 text-xs ${adviceCls}`}
+          >
             <AdviceIcon className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             <span>{advice.text}</span>
           </div>
@@ -635,7 +696,10 @@ function PlanPanel({
               const { Icon, dotCls, rowCls } = checkpointMeta[cp.type];
               const isMini = cp.type === "mini-bubble";
               return (
-                <div key={i} className={`relative flex items-start gap-2.5 ${isMini ? "py-1" : "py-2"}`}>
+                <div
+                  key={i}
+                  className={`relative flex items-start gap-2.5 ${isMini ? "py-1" : "py-2"}`}
+                >
                   <div
                     className={`absolute -left-7 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 bg-background ${dotCls} ${isMini ? "scale-75" : ""}`}
                   >
@@ -660,7 +724,8 @@ function PlanPanel({
           </div>
         </div>
         <p className="text-[11px] text-muted-foreground pl-1">
-          Times shown as MM:SS from exam start. Mini-bubble markers = every ≈25 questions within a section.
+          Times shown as MM:SS from exam start. Mini-bubble markers = every ≈25 questions within a
+          section.
         </p>
       </div>
     </div>
